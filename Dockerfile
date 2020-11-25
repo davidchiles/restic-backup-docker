@@ -1,14 +1,33 @@
-FROM alpine:latest as rclone
+FROM golang:1.15 AS builder
+
+ARG RESTIC_VERSION=0.11.0
+ARG RESTIC_SHA256=73cf434ec93e2e20aa3d593dc5eacb221a71d5ae0943ca59bdffedeaf238a9c6
+
+RUN curl -sL -o restic.tar.gz https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic-${RESTIC_VERSION}.tar.gz \
+ && echo "${RESTIC_SHA256}  restic.tar.gz" | sha256sum -c - \
+ && tar xzf restic.tar.gz \
+ && cd restic-${RESTIC_VERSION} \
+ && go run build.go \
+ && mv restic /usr/local/bin/restic \
+ && cd .. \
+ && rm restic.tar.gz restic-${RESTIC_VERSION} -fR
+
+FROM alpine:3.11 as rclone
 
 # Get rclone executable
-ADD https://downloads.rclone.org/rclone-current-linux-amd64.zip /
-RUN unzip rclone-current-linux-amd64.zip && mv rclone-*-linux-amd64/rclone /bin/rclone && chmod +x /bin/rclone
+ADD https://downloads.rclone.org/rclone-current-linux-arm-v7.zip /
+RUN unzip rclone-current-linux-arm-v7.zip && mv rclone-*-linux-arm-v7/rclone /bin/rclone && chmod +x /bin/rclone
 
-FROM restic/restic:0.11.0
+#
+# Final image
+#
+FROM alpine:3.11
 
-RUN apk add --update --no-cache heirloom-mailx fuse curl
+# install mailx
+RUN apk add --update --no-cache heirloom-mailx fuse ca-certificates openssh-client tzdata
 
 COPY --from=rclone /bin/rclone /bin/rclone
+COPY --from=builder /usr/local/bin/* /usr/local/bin/
 
 RUN \
     mkdir -p /mnt/restic /var/spool/cron/crontabs /var/log; \
