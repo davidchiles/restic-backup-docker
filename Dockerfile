@@ -1,10 +1,8 @@
 FROM golang:1.15 AS builder
 
-ARG RESTIC_VERSION=0.11.0
-ARG RESTIC_SHA256=73cf434ec93e2e20aa3d593dc5eacb221a71d5ae0943ca59bdffedeaf238a9c6
+ARG RESTIC_VERSION=0.12.0
 
 RUN curl -sL -o restic.tar.gz https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic-${RESTIC_VERSION}.tar.gz \
- && echo "${RESTIC_SHA256}  restic.tar.gz" | sha256sum -c - \
  && tar xzf restic.tar.gz \
  && cd restic-${RESTIC_VERSION} \
  && go run build.go \
